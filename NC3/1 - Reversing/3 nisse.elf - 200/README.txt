@@ -1,0 +1,1 @@
+En livlig nisse har lavet en crackme, som han rigtig gerne vil vise frem.

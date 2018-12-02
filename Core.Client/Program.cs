@@ -38,6 +38,7 @@ namespace Core.Client
                 Console.WriteLine();
                 Console.WriteLine("----------------------- 0 -----------------------");
                 Console.WriteLine();
+
                 solution.SolveAndPrint();
             }
 
