@@ -34,11 +34,11 @@ namespace Core
         {
             List<TestDataSets> allTestDataSets = GetTestDataSets();
             TestDataSets testDataSets = null;
-            if (solution + 1 < allTestDataSets.Count)
+            if (solution < allTestDataSets.Count)
                 testDataSets = allTestDataSets[solution];
 
             TestDataSet testDataSet = null;
-            if (testDataSets != null && testCase + 1 < testDataSets.Count)
+            if (testDataSets != null && testCase < testDataSets.Count)
                 testDataSet = testDataSets[testCase];
 
             return testDataSet;
