@@ -1,0 +1,1 @@
+Julemanden havde fået mistanke om et hemmeligt netværk af sortnisser, der forsøgte at overtage gaveproduktionen og sælge den til højestbydende kapitalfond. Men hvem er lederen af netværket?
