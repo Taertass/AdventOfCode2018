@@ -64,7 +64,6 @@ namespace Core.Solutions
             public int GetDoubledArea()
             {
                 int doubledArea = 0;
-                int width = 0;
                 for (int x = 0; x < Width; x++)
                 {
                     for (int y = 0; y < Height; y++)
@@ -72,17 +71,7 @@ namespace Core.Solutions
                         string value = _grid[x, y];
                         if (value == "X")
                         {
-                            while(value == "X")
-                            {
-                                y++;
-                                value = _grid[x, y];
-                            }
-
-
-                            break;
-                            //Find widht 
-
-                            //Find height
+                            doubledArea++;
                         }
                     }
                 }
@@ -104,6 +93,22 @@ namespace Core.Solutions
 
                 return sb.ToString();
             }
+
+            internal bool HasOverlap(Claim claim)
+            {
+                bool hasOverlap = false;
+
+                for (int x = claim.X; x < claim.X + claim.Width; x++)
+                {
+                    for (int y = claim.Y; y < claim.Y + claim.Height; y++)
+                    {
+                        if (_grid[y, x] == "X")
+                            hasOverlap = true;
+                    }
+                }
+
+                return hasOverlap;
+            }
         }
 
         public override string Solve1(string input)
@@ -119,14 +124,35 @@ namespace Core.Solutions
             {
                 grid.ApplyClaim(claim);
             }
-
-            string s = grid.ToString();
-            return "";
+            
+            return grid.GetDoubledArea().ToString();
         }
 
         public override string Solve2(string input)
         {
-            return "";
+            string[] lines = SplitByNewlineAsString(input);
+            List<Claim> claims = lines.Select(l => new Claim(l)).ToList();
+
+            int width = claims.Select(c => c.Y + c.Width).Max();
+            int height = claims.Select(c => c.X + c.Height).Max();
+
+            Grid grid = new Grid(width, height);
+            foreach (Claim claim in claims)
+            {
+                grid.ApplyClaim(claim);
+            }
+
+            List<Claim> foundClaims = new List<Claim>();
+            foreach (Claim claim in claims)
+            {
+                bool hasOverlap = grid.HasOverlap(claim);
+                if(!hasOverlap)
+                {
+                    foundClaims.Add(claim);
+                }
+            }
+
+            return foundClaims.First().Id.ToString();
         }
 
         public override List<TestDataSets> GetTestDataSets()
@@ -141,7 +167,29 @@ namespace Core.Solutions
 @"#1 @ 1,3: 4x4
 #2 @ 3,1: 4x4
 #3 @ 5,5: 2x2",
-                        Result = "2"         
+                        Result = "4"         
+                    },
+                    new TestDataSet()
+                    {
+                        Input =
+@"#1 @ 1,3: 4x4
+#2 @ 3,1: 4x4
+#3 @ 5,4: 2x2",
+                        Result = "6"
+                    },
+                    new TestDataSet()
+                    {
+                        Input =
+@"#1 @ 1,3: 5x5
+#2 @ 3,1: 4x4",
+                        Result = "6"
+                    },
+                    new TestDataSet()
+                    {
+                        Input =
+@"#1 @ 1,3: 5x5
+#2 @ 3,1: 5x5",
+                        Result = "9"
                     }
                 }
             };
