@@ -81,7 +81,7 @@ namespace Core
                     Console.WriteLine("Calculating solution 2...");
                     result2 = Solve2(dataSet);
                 }
-                catch { }
+                catch(Exception ex) { }
 
                 Console.WriteLine();
                 Console.WriteLine($"Solution for {GetType().Name}");

@@ -10,12 +10,13 @@ namespace Core.Client
         private static void Main(string[] args)
         {
             Type[] allSolutions = Assembly.Load("Core").GetTypes()
-              .Where(t => string.Equals(t.Namespace, "Core.Solutions", StringComparison.Ordinal))
+              .Where(t => t.Name.StartsWith("Day") && string.Equals(t.Namespace, "Core.Solutions", StringComparison.Ordinal))
               .OrderByDescending(t => t.Name)
               .ToArray();
 
             DayBase solution = (DayBase)Activator.CreateInstance(allSolutions[0], new object[0]);
 
+            //solution = new Solutions.Day1();
             List<TestDataSets> allTestDataSets = solution.GetTestDataSets();
 
             int? specificSolution = null;
