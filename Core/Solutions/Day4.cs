@@ -11,108 +11,38 @@ namespace Core.Solutions
         public enum GuardEventType
         {
             None,
-            ShiftBegins,
+            BeginsShift,
             FallsAsleep,
             WakesUp
         }
-
-        public class EventTable
-        {
-            public List<GuardEvent> GuardEvents { get; } = new List<GuardEvent>();
-
-            public override string ToString()
-            {
-                StringBuilder sb = new StringBuilder();
-                sb.AppendLine("Date   ID   Minute");
-                sb.Append("            ");
-
-                for (var i = 0; i < 60; i++)
-                {
-                    sb.Append(i.ToString().Substring(0,1));
-                    
-                }
-                sb.AppendLine();
-
-                sb.Append("            ");
-
-                for (var i = 0; i < 60; i++)
-                {
-                    string number = i.ToString();
-                    if (number.Length < 2)
-                        number = "0" + number;
-
-                    sb.Append(number.ToString().Substring(1, 1));
-                }
-                sb.AppendLine();
-
-                int currentGuardId = 0;
-                foreach(var groupedGuardEvent in GuardEvents.OrderBy(ge => ge.TimeStamp))
-                {
-                    sb.Append(groupedGuardEvent.First().TimeStamp.ToString("MM-dd"));
-                    sb.Append($"  #{groupedGuardEvent.First().Id}  ");
-
-                    bool isOnShift = false;
-                    bool isAwake = true;
-
-                    for (var i = 0; i < 60; i++)
-                    {
-                        var guradEvent = groupedGuardEvent.FirstOrDefault(ge => ge.TimeStamp.Minute == i);
-
-                        if(guradEvent?.GuardEventType == GuardEventType.ShiftBegins)
-                        {
-                            isOnShift = true;
-                        }
-                        else if (guradEvent?.GuardEventType == GuardEventType.FallsAsleep)
-                        {
-                            isAwake = false;
-                        }
-                        else if (guradEvent?.GuardEventType == GuardEventType.WakesUp)
-                        {
-                            isAwake = true;
-                        }
-
-                        if (isOnShift && isAwake)
-                        {
-                            sb.Append(".");
-                        }
-                        else if (isOnShift && !isAwake)
-                        {
-                            sb.Append("#");
-                        }
-                        else
-                        {
-                            sb.Append(" ");
-                        }
-                    }
-
-                    sb.AppendLine();
-                }
-                
-                return sb.ToString();
-            }
-        }
-
+        
         public class GuardEvent
         {
+            public int? GuardId { get; set; }
+
             public GuardEventType GuardEventType { get; set; }
 
             public DateTime TimeStamp { get; set; }
-
+            
             public string Data { get; set; }
 
-            public int Id { get; set; }
+            public long TimeInEvent => NextGuardEvent != null ? (NextGuardEvent.TimeStamp.Ticks - TimeStamp.Ticks) : 0;
 
-            public GuardEvent(string data) : this(data, null)
-            { }
+            public double MinutesInEvent => TimeSpan.FromTicks(TimeInEvent).TotalMinutes;
 
-            public GuardEvent(string data, int? guardId)
+            public GuardEvent PreviousGuardEvent { get; set; }
+
+            public GuardEvent NextGuardEvent { get; set; }
+            
+
+            public GuardEvent(string data) 
             {
                 string datePart = data.Substring(1, 16);
                 TimeStamp = DateTime.Parse(datePart);
 
                 if (data.Contains("begins shift"))
                 {
-                    GuardEventType = GuardEventType.ShiftBegins;
+                    GuardEventType = GuardEventType.BeginsShift;
                 }
                 else if (data.Contains("falls asleep"))
                 {
@@ -123,34 +53,115 @@ namespace Core.Solutions
                     GuardEventType = GuardEventType.WakesUp;
                 }
 
-                Id = guardId ?? 0;
-
                 var match = Regex.Match(data, "Guard #[0-9]+");
                 if (match.Success)
                 {
                     var splitIndex = match.Value.IndexOf('#');
                     var idText = match.Value.Substring(splitIndex + 1, match.Value.Length - splitIndex - 1);
-                    Id = Convert.ToInt32(idText);
+                    GuardId = Convert.ToInt32(idText);
+                }
+            }
+        }
+
+
+        public class Guard
+        {
+            public int Id { get; set; }
+
+            public List<GuardEvent> GuardEvents { get; set; } = new List<GuardEvent>();
+
+            public void AddEvent(GuardEvent guardEvent)
+            {
+                GuardEvents.Add(guardEvent);
+            }
+
+            public bool IsAsleep(DateTime timestamp)
+            {
+                return false;
+            }
+
+            public double GetTotalSleepTime()
+            {
+                List<GuardEvent> fellAsleepEvents = GuardEvents.Where(g => g.GuardEventType == GuardEventType.FallsAsleep).ToList();
+                var minutesAsleep = fellAsleepEvents.Sum(ge => ge.MinutesInEvent);
+
+                return minutesAsleep;
+            }
+
+            public int GetMinuteMostAsleep()
+            {
+                List<GuardEvent> fellAsleepEvents = GuardEvents.Where(g => g.GuardEventType == GuardEventType.FallsAsleep).ToList();
+
+                Dictionary<int, int> sumOfSleepMinutes = new Dictionary<int, int>();
+                for(int i = 0; i < 60; i++)
+                {
+                    sumOfSleepMinutes.Add(i, 0);
                 }
 
+                for (int i = 0; i < 60; i++)
+                {
+                    int wasAsleepCount = fellAsleepEvents.Count(ge => ge.TimeStamp.Minute <= i && (i - ge.TimeStamp.Minute) < ge.MinutesInEvent);
+                    if(wasAsleepCount > 0)
+                        sumOfSleepMinutes[i] = wasAsleepCount;
+                }
+
+
+                var minutePair = sumOfSleepMinutes.OrderByDescending(v => v.Value).First();
+
+                return minutePair.Key;
             }
         }
 
         public override string Solve1(string input)
-        {
-            EventTable eventTable = new EventTable();
-
+        {            
             string[] lines = SplitByNewlineAsString(input);
-            GuardEvent guard = null ;
+
+            //Parse GuardEvents
+            List<GuardEvent> guardEvents = new List<GuardEvent>();
+            GuardEvent _previousGuardEvent = null;
             foreach (string line in lines)
             {
-                guard = new GuardEvent(line, guard?.Id);
-                eventTable.GuardEvents.Add(guard);
+                GuardEvent guardEvent = new GuardEvent(line);
+
+                if (_previousGuardEvent != null)
+                {
+                    guardEvent.PreviousGuardEvent = guardEvent;
+                    _previousGuardEvent.NextGuardEvent = guardEvent;
+                }
+
+                _previousGuardEvent = guardEvent;
+
+                guardEvents.Add(guardEvent);
+            }
+            
+            //Parse Guard Events
+            List<Guard> guards = new List<Guard>();
+            Guard guard = null;
+            foreach (GuardEvent guardEvent in guardEvents)
+            {
+                if(guardEvent.GuardId.HasValue)
+                {
+                    guard = guards.FirstOrDefault(g => g.Id == guardEvent.GuardId);
+                    if(guard == null)
+                    {
+                        guard = new Guard()
+                        {
+                            Id = guardEvent.GuardId.Value,
+                        };
+                        guards.Add(guard);
+                    }
+                }
+                guard.AddEvent(guardEvent);
             }
 
-            var s = eventTable.ToString();
+            //Get guard with most time asleep
+            Guard guardMostAsleep = guards.OrderByDescending(g => g.GetTotalSleepTime()).First();
+            double timeAsleep = guardMostAsleep.GetTotalSleepTime();
 
-            return "";
+            //Get minute of day that he is most asleep
+            double minuteMostAsleep = guardMostAsleep.GetMinuteMostAsleep();
+
+            return (guardMostAsleep.Id * minuteMostAsleep).ToString();
         }
 
         public override string Solve2(string input)
@@ -184,7 +195,7 @@ namespace Core.Solutions
 [1518-11-05 00:03] Guard #99 begins shift
 [1518-11-05 00:45] falls asleep
 [1518-11-05 00:55] wakes up",
-                        Result = "4"
+                        Result = "240"
                     }
                 }
             };
