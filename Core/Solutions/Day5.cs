@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -51,47 +52,77 @@ namespace Core.Solutions
 
             string letters = "abcdefghijklmnopqrstuvwxyz";
 
+            List<string> candidates = new List<string>();
             foreach(char candidateChar in letters.ToCharArray())
             {
                 var charArray = input.ToCharArray();
+                StringBuilder sb = new StringBuilder();
 
                 bool wasAnythingDestroyed = false;
                 do
                 {
-
-
-
-                } while(wasAnythingDestroyed)
-                for (int i = 0; i < charArray.Length; i++)
-                {
-                    char c1 = charArray[i];
-                    if (!char.IsLower(c1) || c1 != candidateChar)
-                        continue;
-                    
-                    bool shouldSkip = false;
-                    for (int j = 0; j < charArray.Length; j++)
+                    for (int i = 0; i < charArray.Length; i++)
                     {
-                        char c2 = charArray[j];
-                        shouldSkip = char.IsUpper(c2) && char.ToLower(c1) == char.ToLower(c2);
+                        wasAnythingDestroyed = false;
+
+                        char c1 = charArray[i];
+                        if(c1 == '_')
+                        {
+                            continue;
+                        }
+
+                        if (char.ToLower(c1) != candidateChar)
+                        {
+                            sb.Append(c1);
+                            continue;
+                        }
+
+                        bool shouldSkip = false;
+                        for (int j = 0; j < charArray.Length; j++)
+                        {
+                            char c2 = charArray[j];
+
+                            if(char.IsUpper(c1))
+                                shouldSkip = char.IsLower(c2) && char.ToLower(c1) == char.ToLower(c2);
+                            else
+                                shouldSkip = char.IsUpper(c2) && char.ToLower(c1) == char.ToLower(c2);
+
+                            if(shouldSkip)
+                            {
+                                charArray[j] = '_';
+                                break;
+                            }
+                        }
+
+                        if (shouldSkip)
+                        {
+                            wasAnythingDestroyed = true;
+
+                            charArray[i] = '_';
+                        }
+                        else
+                        {
+                            sb.Append(c1);
+                        }
                     }
 
-                    if (shouldSkip)
-                    {
-                        wasAnythingDestroyed = true;
-                        charArray.RemoveAt(i);
-                    }
-                    else
-                    {
-                        sb.Append(c1);
-                    }
-                }
+
+                } while (wasAnythingDestroyed);
+
+
+                candidates.Add(sb.ToString());
             }
 
 
+            var tested = new List<string>();
+            foreach(var candidate in candidates)
+            {
+                tested.Add(Solve1(candidate));
+            }
 
 
-            
-            return result.Length.ToString();
+            var shortestCandiates = tested.OrderBy(c => Convert.ToInt32(c)).First();
+            return shortestCandiates;
         }
 
         public override List<TestDataSets> GetTestDataSets()
