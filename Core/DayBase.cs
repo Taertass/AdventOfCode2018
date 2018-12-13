@@ -75,13 +75,13 @@ namespace Core
                     Console.WriteLine("Calculating solution 1...");
                     result1 = Solve1(dataSet);
                 }
-                catch { }
+                catch (Exception ex) { Console.WriteLine($"Solution 1 ex: {ex.ToString()}"); }
                 try
                 {
                     Console.WriteLine("Calculating solution 2...");
                     result2 = Solve2(dataSet);
                 }
-                catch(Exception ex) { }
+                catch (Exception ex) { Console.WriteLine($"Solution 2 ex: {ex.ToString()}"); }
 
                 Console.WriteLine();
                 Console.WriteLine($"Solution for {GetType().Name}");
